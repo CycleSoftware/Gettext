@@ -124,7 +124,8 @@ class PhpFunctionsScanner extends FunctionsScanner
                         if ($nextToken === '(') {
                             $newFunction = new ParsedFunction($value[1], $value[2]);
                             if ($value[1] === '__c') {
-                                $newFunction->addComment('Consumer context');
+                                $newFunction->addComment('Consumer text');
+                                $newFunction->addComment('flag:priority:200');
                             }
                             // add comment that was on the line before.
                             if (isset($bufferComments[0])) {
