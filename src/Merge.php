@@ -41,6 +41,27 @@ class Merge
      */
     public static function mergeFlags(Translation $from, Translation $to, $options = self::DEFAULTS)
     {
+        $to->deleteFlags();
+        $from->deleteFlags();
+        $new_flags = [];
+        foreach ($to->getFlags() as $flag) {
+            if (StringHelper::starts_with($flag, 'priority:')) {
+                continue;
+            }
+            $key = explode(':', $flag);
+            $new_flags[ $key[0] ] = $flag;
+        }
+        $to->deleteFlags();
+        foreach ($from->getFlags() as $flag) {
+            $key = explode(':', $flag);
+            if (!isset($new_flags[ $key[0] ])) {
+                $new_flags[ $key[0] ] = $flag;
+            }
+        }
+        foreach ($new_flags as $flag) {
+            $to->addFlag($flag);
+        }
+        return;
         if ($options & self::FLAGS_THEIRS) {
             $to->deleteFlags();
         }
