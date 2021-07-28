@@ -132,7 +132,11 @@ abstract class FunctionsScanner
 
             if (isset($function[3])) {
                 foreach ($function[3] as $extractedComment) {
-                    $translation->addExtractedComment($extractedComment);
+                    if (\strpos($extractedComment, 'tag:') === 0){
+                        $translation->addFlag(substr($extractedComment, 4));   
+                    } else {
+                        $translation->addExtractedComment($extractedComment);
+                    }
                 }
             }
         }
