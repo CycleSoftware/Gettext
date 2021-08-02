@@ -74,7 +74,7 @@ abstract class Extractor implements ExtractorInterface
 
         $content = $length ? fread($fd, $length) : '';
         fclose($fd);
-        $content = \preg_replace('/\r\n|\r|\n/', "\n", $content)
+        $content = \preg_replace('/\r\n|\r|\n/', "\n", $content);
         return $content;
     }
 }
