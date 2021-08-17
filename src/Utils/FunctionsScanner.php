@@ -30,7 +30,9 @@ abstract class FunctionsScanner
 
         foreach ($this->getFunctions($options['constants']) as $function) {
             list($name, $line, $args) = $function;
-
+            if (isset($options['php']) && $name === '_' && \count($args) !== 1) {
+                throw new \Exception(sprintf('Arguments wrong for _ function in file %s:%d', $file, $line));
+            }
             if (isset($options['lineOffset'])) {
                 $line += $options['lineOffset'];
             }
