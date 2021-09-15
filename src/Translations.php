@@ -115,8 +115,8 @@ class Translations extends ArrayObject
         ],
         'headersSorting' => false,
         'defaultDateHeaders' => [
-            'CS-POT-Creation-Date',
-            'CS-PO-Revision-Date',
+           // 'CS-POT-Creation-Date',
+           // 'CS-PO-Revision-Date',
         ],
     ];
 
