@@ -107,16 +107,19 @@ class Translations extends ArrayObject
         'defaultHeaders' => [
             'Project-Id-Version' => '',
             'Report-Msgid-Bugs-To' => '',
+            'POT-Creation-Date' => '',
+            'PO-Revision-Date' => '',
             'Last-Translator' => '',
             'Language-Team' => '',
+            'Language' => '',
             'MIME-Version' => '1.0',
             'Content-Type' => 'text/plain; charset=UTF-8',
             'Content-Transfer-Encoding' => '8bit',
         ],
         'headersSorting' => false,
         'defaultDateHeaders' => [
-           // 'CS-POT-Creation-Date',
-           // 'CS-PO-Revision-Date',
+            // 'CS-POT-Creation-Date',
+            // 'CS-PO-Revision-Date',
         ],
     ];
 
@@ -130,10 +133,10 @@ class Translations extends ArrayObject
         $this->headers = static::$options['defaultHeaders'];
 
         foreach (static::$options['defaultDateHeaders'] as $header) {
-            $this->headers[$header] = date('c');
+            $this->headers[ $header ] = date('c');
         }
 
-        $this->headers[self::HEADER_LANGUAGE] = '';
+        $this->headers[ self::HEADER_LANGUAGE ] = '';
 
         parent::__construct($input, $flags, $iterator_class);
     }
@@ -150,7 +153,7 @@ class Translations extends ArrayObject
             throw new BadMethodCallException("The method $name does not exists");
         }
 
-        return call_user_func_array([new static(), 'add'.ucfirst($name)], $arguments);
+        return call_user_func_array([new static(), 'add' . ucfirst($name)], $arguments);
     }
 
     /**
@@ -167,7 +170,7 @@ class Translations extends ArrayObject
         }
 
         if ($matches[1] === 'addFrom') {
-            $extractor = 'Gettext\\Extractors\\'.$matches[2].'::from'.$matches[3];
+            $extractor = 'Gettext\\Extractors\\' . $matches[2] . '::from' . $matches[3];
             $source = array_shift($arguments);
             $options = array_shift($arguments) ?: [];
 
@@ -176,7 +179,7 @@ class Translations extends ArrayObject
             return $this;
         }
 
-        $generator = 'Gettext\\Generators\\'.$matches[2].'::to'.$matches[3];
+        $generator = 'Gettext\\Generators\\' . $matches[2] . '::to' . $matches[3];
 
         array_unshift($arguments, $this);
 
@@ -191,7 +194,7 @@ class Translations extends ArrayObject
         $array = [];
 
         foreach ($this as $key => $translation) {
-            $array[$key] = clone $translation;
+            $array[ $key ] = clone $translation;
         }
 
         $this->exchangeArray($array);
@@ -200,12 +203,12 @@ class Translations extends ArrayObject
     /**
      * Control the new translations added.
      *
-     * @param mixed       $index
+     * @param mixed $index
      * @param Translation $value
      *
+     * @return Translation
      * @throws InvalidArgumentException If the value is not an instance of Gettext\Translation
      *
-     * @return Translation
      */
     public function offsetSet($index, $value)
     {
@@ -218,9 +221,9 @@ class Translations extends ArrayObject
         $id = $value->getId();
 
         if ($this->offsetExists($id)) {
-            $this[$id]->mergeWith($value);
+            $this[ $id ]->mergeWith($value);
 
-            return $this[$id];
+            return $this[ $id ];
         }
 
         parent::offsetSet($id, $value);
@@ -231,7 +234,7 @@ class Translations extends ArrayObject
     /**
      * Set the plural definition.
      *
-     * @param int    $count
+     * @param int $count
      * @param string $rule
      *
      * @return self
@@ -273,7 +276,7 @@ class Translations extends ArrayObject
     public function setHeader($name, $value)
     {
         $name = trim($name);
-        $this->headers[$name] = trim($value);
+        $this->headers[ $name ] = trim($value);
 
         return $this;
     }
@@ -287,7 +290,7 @@ class Translations extends ArrayObject
      */
     public function getHeader($name)
     {
-        return isset($this->headers[$name]) ? $this->headers[$name] : null;
+        return isset($this->headers[ $name ]) ? $this->headers[ $name ] : null;
     }
 
     /**
@@ -325,7 +328,7 @@ class Translations extends ArrayObject
      */
     public function deleteHeader($name)
     {
-        unset($this->headers[$name]);
+        unset($this->headers[ $name ]);
 
         return $this;
     }
@@ -345,9 +348,9 @@ class Translations extends ArrayObject
      *
      * @param string $language
      *
+     * @return self
      * @throws InvalidArgumentException if the language hasn't been recognized
      *
-     * @return self
      */
     public function setLanguage($language)
     {
@@ -411,8 +414,8 @@ class Translations extends ArrayObject
     /**
      * Search for a specific translation.
      *
-     * @param string|Translation $context  The context of the translation or a translation instance
-     * @param string             $original The original string
+     * @param string|Translation $context The context of the translation or a translation instance
+     * @param string $original The original string
      *
      * @return Translation|false
      */
@@ -420,11 +423,12 @@ class Translations extends ArrayObject
     {
         if ($context instanceof Translation) {
             $id = $context->getId();
-        } else {
+        }
+        else {
             $id = Translation::generateId($context, $original);
         }
 
-        return $this->offsetExists($id) ? $this[$id] : false;
+        return $this->offsetExists($id) ? $this[ $id ] : false;
     }
 
     /**
@@ -444,9 +448,9 @@ class Translations extends ArrayObject
     /**
      * Creates and insert/merges a new translation.
      *
-     * @param string $context  The translation context
+     * @param string $context The translation context
      * @param string $original The translation original string
-     * @param string $plural   The translation original plural string
+     * @param string $plural The translation original plural string
      *
      * @return Translation The translation created
      */
@@ -459,7 +463,7 @@ class Translations extends ArrayObject
      * Merges this translations with other translations.
      *
      * @param Translations $translations The translations instance to merge with
-     * @param int          $options
+     * @param int $options
      *
      * @return self
      */
