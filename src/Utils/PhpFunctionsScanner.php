@@ -56,6 +56,14 @@ class PhpFunctionsScanner extends FunctionsScanner
     }
 
     /**
+     * @return array
+     */
+    public function getTokens(): array
+    {
+        return $this->tokens;
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function getFunctions(array $constants = [])
@@ -69,7 +77,7 @@ class PhpFunctionsScanner extends FunctionsScanner
         $functions = [];
 
         for ($k = 0; $k < $count; ++$k) {
-            $value = $this->tokens[$k];
+            $value = $this->tokens[ $k ];
 
             if (is_string($value)) {
                 if (isset($bufferFunctions[0])) {
@@ -100,8 +108,8 @@ class PhpFunctionsScanner extends FunctionsScanner
 
                 case T_STRING:
                     if (isset($bufferFunctions[0])) {
-                        if (isset($constants[$value[1]])) {
-                            $bufferFunctions[0]->addArgumentChunk($constants[$value[1]]);
+                        if (isset($constants[ $value[1] ])) {
+                            $bufferFunctions[0]->addArgumentChunk($constants[ $value[1] ]);
                             break;
                         }
 
@@ -115,7 +123,7 @@ class PhpFunctionsScanner extends FunctionsScanner
 
                     //new function found
                     for ($j = $k + 1; $j < $count; ++$j) {
-                        $nextToken = $this->tokens[$j];
+                        $nextToken = $this->tokens[ $j ];
 
                         if (is_array($nextToken) && $nextToken[0] === T_COMMENT) {
                             continue;
@@ -186,7 +194,7 @@ class PhpFunctionsScanner extends FunctionsScanner
         //this returns a comment or null
         $comment = ParsedComment::create($value, $line);
 
-        $prefixes = array_filter((array) $this->extractComments);
+        $prefixes = array_filter((array)$this->extractComments);
 
         if ($comment && $comment->checkPrefixes($prefixes)) {
             return $comment;
