@@ -3,6 +3,7 @@
 namespace Gettext\Extractors;
 
 use Gettext\Translations;
+use Gettext\Utils\JsFunctionsScanner;
 use Gettext\Utils\PhpFunctionsScanner;
 
 /**
@@ -11,10 +12,10 @@ use Gettext\Utils\PhpFunctionsScanner;
 class PhpCode extends Extractor implements ExtractorInterface
 {
     public static $options = [
-         // - false: to not extract comments
-         // - empty string: to extract all comments
-         // - non-empty string: to extract comments that start with that string
-         // - array with strings to extract comments format.
+        // - false: to not extract comments
+        // - empty string: to extract all comments
+        // - non-empty string: to extract comments that start with that string
+        // - array with strings to extract comments format.
         'extractComments' => false,
 
         'constants' => [],
@@ -49,12 +50,33 @@ class PhpCode extends Extractor implements ExtractorInterface
         $options += static::$options;
 
         $functions = new PhpFunctionsScanner($string);
-
         if ($options['extractComments'] !== false) {
             $functions->enableCommentsExtraction($options['extractComments']);
         }
-
         $functions->saveGettextFunctions($translations, $options);
+
+        if ($options['script_tags'] ?? false) {
+            self::extractScriptTags($functions, $translations, $options);
+        }
+    }
+
+    /**
+     * Extracts in <script> tags inline HTML
+     * @param PhpFunctionsScanner $functions
+     * @param Translations $translations
+     * @param array $php_options
+     * @throws \Exception
+     */
+    protected static function extractScriptTags(PhpFunctionsScanner $functions, Translations $translations, array $php_options)
+    {
+        $filtered = \array_filter(
+            $functions->getTokens(),
+            fn(mixed $t) => \is_array($t) && $t[0] === \T_INLINE_HTML
+        );
+        \preg_match('#<\s*?script\b[^>]*>(.*?)</script\b[^>]*>#s', \implode('', \array_map(fn(mixed $v) => \is_array($v) ? $v[1] : $v, $filtered)), $matches);
+        foreach($matches as $match){
+            \Gettext\Extractors\JsCode::fromString($match, $translations, ['file' => $php_options['file'].'.js', 'functions' => ['__e' => 'gettext', '_' => 'gettext', '__' => 'gettext', '__c' => 'gettext', 'gettext' => 'gettext', '$gettext' => 'gettext']]);
+        }
     }
 
     /**
@@ -119,20 +141,20 @@ class PhpCode extends Extractor implements ExtractorInterface
 
         if ($dec < 0x0800) {
             return chr(0xC0 + ($dec >> 6))
-                .chr(0x80 + ($dec & 0x3f));
+                . chr(0x80 + ($dec & 0x3f));
         }
 
         if ($dec < 0x010000) {
             return chr(0xE0 + ($dec >> 12))
-                    .chr(0x80 + (($dec >> 6) & 0x3f))
-                    .chr(0x80 + ($dec & 0x3f));
+                . chr(0x80 + (($dec >> 6) & 0x3f))
+                . chr(0x80 + ($dec & 0x3f));
         }
 
         if ($dec < 0x200000) {
             return chr(0xF0 + ($dec >> 18))
-                    .chr(0x80 + (($dec >> 12) & 0x3f))
-                    .chr(0x80 + (($dec >> 6) & 0x3f))
-                    .chr(0x80 + ($dec & 0x3f));
+                . chr(0x80 + (($dec >> 12) & 0x3f))
+                . chr(0x80 + (($dec >> 6) & 0x3f))
+                . chr(0x80 + ($dec & 0x3f));
         }
     }
 }
