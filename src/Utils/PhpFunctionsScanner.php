@@ -75,8 +75,8 @@ class PhpFunctionsScanner extends FunctionsScanner
         $bufferComments = [];
         /* @var array $functions */
         $functions = [];
-
         for ($k = 0; $k < $count; ++$k) {
+
             $value = $this->tokens[ $k ];
 
             if (is_string($value)) {
@@ -106,6 +106,7 @@ class PhpFunctionsScanner extends FunctionsScanner
                     }
                     break;
 
+                case T_NAME_FULLY_QUALIFIED:
                 case T_STRING:
                     if (isset($bufferFunctions[0])) {
                         if (isset($constants[ $value[1] ])) {
@@ -123,14 +124,14 @@ class PhpFunctionsScanner extends FunctionsScanner
 
                     //new function found
                     for ($j = $k + 1; $j < $count; ++$j) {
-                        $nextToken = $this->tokens[ $j ];
 
+                        $nextToken = $this->tokens[ $j ];
                         if (is_array($nextToken) && $nextToken[0] === T_COMMENT) {
                             continue;
                         }
 
                         if ($nextToken === '(') {
-                            $newFunction = new ParsedFunction($value[1], $value[2]);
+                            $newFunction = new ParsedFunction(\ltrim($value[1], '\\'), $value[2]);
                             if ($value[1] === '__c') {
                                 $newFunction->addComment('Consumer text');
                                 $newFunction->addComment('flag:priority:200');
