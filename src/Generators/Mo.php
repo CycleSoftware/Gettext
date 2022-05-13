@@ -29,13 +29,14 @@ class Mo extends Generator implements GeneratorInterface
             if (!$translation->hasTranslation() || $translation->isDisabled()) {
                 continue;
             }
-
             if ($translation->hasContext()) {
                 $originalString = $translation->getContext()."\x04".$translation->getOriginal();
             } else {
                 $originalString = $translation->getOriginal();
             }
-
+            if ($originalString === '') {
+                continue;
+            }
             $messages[$originalString] = $translation;
         }
 
