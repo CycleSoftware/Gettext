@@ -2,227 +2,148 @@
 
 namespace Gettext\Utils;
 
-use Gettext\Extractors\PhpCode;
+use Exception;
+use Gettext\Translations;
 
-class PhpFunctionsScanner extends FunctionsScanner
+abstract class FunctionsScanner
 {
     /**
-     * PHP tokens of the code to be parsed.
+     * Scan and returns the functions and the arguments.
      *
-     * @var array
-     */
-    protected $tokens;
-
-    /**
-     * If not false, comments will be extracted.
+     * @param array $constants Constants used in the code to replace
      *
-     * @var string|false|array
-     */
-    protected $extractComments = false;
-
-    /**
-     * Enable extracting comments that start with a tag (if $tag is empty all the comments will be extracted).
-     *
-     * @param mixed $tag
-     */
-    public function enableCommentsExtraction($tag = '')
-    {
-        $this->extractComments = $tag;
-    }
-
-    /**
-     * Disable comments extraction.
-     */
-    public function disableCommentsExtraction()
-    {
-        $this->extractComments = false;
-    }
-
-    /**
-     * Constructor.
-     *
-     * @param string $code The php code to scan
-     */
-    public function __construct($code)
-    {
-        $this->tokens = array_values(
-            array_filter(
-                token_get_all($code),
-                function ($token) {
-                    return !is_array($token) || $token[0] !== T_WHITESPACE;
-                }
-            )
-        );
-    }
-
-    /**
      * @return array
      */
-    public function getTokens(): array
-    {
-        return $this->tokens;
-    }
+    abstract public function getFunctions(array $constants = []);
 
     /**
-     * {@inheritdoc}
+     * Search for specific functions and create translations.
+     *
+     * @param Translations $translations The translations instance where save the values
+     * @param array $options The extractor options
+     * @throws Exception
      */
-    public function getFunctions(array $constants = [])
+    public function saveGettextFunctions(Translations $translations, array $options)
     {
-        $count = count($this->tokens);
-        /* @var ParsedFunction[] $bufferFunctions */
-        $bufferFunctions = [];
-        /* @var ParsedComment[] $bufferComments */
-        $bufferComments = [];
-        /* @var array $functions */
-        $functions = [];
-        $in_here_doc = false;
-        for ($k = 0; $k < $count; ++$k) {
+        $functions = $options['functions'];
+        $file = $options['file'];
 
-            $value = $this->tokens[ $k ];
+        foreach ($this->getFunctions($options['constants']) as $function) {
+            [$name, $line, $args] = $function;
+            if (isset($options['php']) && $name === '_' && \count($args) !== 1) {
+                throw new \Exception(sprintf('Arguments wrong for _ function in file %s:%d', $file, $line));
+            }
+            if (isset($options['lineOffset'])) {
+                $line += $options['lineOffset'];
+            }
 
-            if (is_string($value)) {
-                if (isset($bufferFunctions[0])) {
-                    switch ($value) {
-                        case ',':
-                            $bufferFunctions[0]->nextArgument();
-                            break;
-                        case ')':
-                            $functions[] = array_shift($bufferFunctions)->close();
-                            break;
-                        case '.':
-                            break;
-                        default:
-                            $bufferFunctions[0]->stopArgument();
-                            break;
-                    }
-                }
+            if (!isset($functions[ $name ])) {
                 continue;
             }
 
-            switch ($value[0]) {
+            $domain = $context = $original = $plural = null;
 
-                case T_START_HEREDOC:
-                    $in_here_doc = true;
-                    $debug = true;
-                    break;
-
-                case T_END_HEREDOC:
-                    $debug = false;
-                    $in_here_doc = false;
-                    break;
-
-                case T_ENCAPSED_AND_WHITESPACE:
-                    if ($in_here_doc) {
-                        if (isset($bufferFunctions[0])) {
-                            $bufferFunctions[0]->addArgumentChunk(\trim($value[1]));
-                            $bufferFunctions[0]->stopArgument();
-                        }
-                    }
-                    break;
-                case T_CONSTANT_ENCAPSED_STRING:
-                    //add an argument to the current function
-                    if (isset($bufferFunctions[0])) {
-                        $bufferFunctions[0]->addArgumentChunk(PhpCode::convertString($value[1]));
-                    }
-                    break;
-
-                case T_NAME_FULLY_QUALIFIED:
-                case T_STRING:
-                    if (isset($bufferFunctions[0])) {
-                        if (isset($constants[ $value[1] ])) {
-                            $bufferFunctions[0]->addArgumentChunk($constants[ $value[1] ]);
-                            break;
-                        }
-
-                        if (strtolower($value[1]) === 'null') {
-                            $bufferFunctions[0]->addArgumentChunk(null);
-                            break;
-                        }
-
-                        $bufferFunctions[0]->stopArgument();
+            switch ($functions[ $name ]) {
+                case 'noop':
+                case 'gettext':
+                    if (!isset($args[0])) {
+                        continue 2;
                     }
 
-                    //new function found
-                    for ($j = $k + 1; $j < $count; ++$j) {
-
-                        $nextToken = $this->tokens[ $j ];
-                        if (is_array($nextToken) && $nextToken[0] === T_COMMENT) {
-                            continue;
-                        }
-
-                        if ($nextToken === '(') {
-                            $newFunction = new ParsedFunction(\ltrim($value[1], '\\'), $value[2]);
-                            if ($value[1] === '__c') {
-                                $newFunction->addComment('Consumer text');
-                                $newFunction->addComment('flag:priority:200');
-                            }
-                            // add comment that was on the line before.
-                            if (isset($bufferComments[0])) {
-                                $comment = $bufferComments[0];
-
-                                if ($comment->isRelatedWith($newFunction)) {
-                                    $newFunction->addComment($comment->getComment());
-                                }
-                            }
-
-                            array_unshift($bufferFunctions, $newFunction);
-                            $k = $j;
-                        }
-                        break;
-                    }
+                    $original = $args[0];
                     break;
 
-                case T_COMMENT:
-                    $comment = $this->parsePhpComment($value[1], $value[2]);
-
-                    if ($comment) {
-                        array_unshift($bufferComments, $comment);
-
-                        // The comment is inside the function call.
-                        if (isset($bufferFunctions[0])) {
-                            $bufferFunctions[0]->addComment($comment->getComment());
-                        }
+                case 'ngettext':
+                    if (!isset($args[1])) {
+                        continue 2;
                     }
+
+                    [$original, $plural] = $args;
+                    break;
+
+                case 'pgettext':
+                    if (!isset($args[1])) {
+                        continue 2;
+                    }
+
+                    [$context, $original] = $args;
+                    break;
+
+                case 'dgettext':
+                    if (!isset($args[1])) {
+                        continue 2;
+                    }
+
+                    [$domain, $original] = $args;
+                    break;
+
+                case 'dpgettext':
+                    if (!isset($args[2])) {
+                        continue 2;
+                    }
+
+                    [$domain, $context, $original] = $args;
+                    break;
+
+                case 'npgettext':
+                    if (!isset($args[2])) {
+                        continue 2;
+                    }
+
+                    [$context, $original, $plural] = $args;
+                    break;
+
+                case 'dnpgettext':
+                    if (!isset($args[3])) {
+                        continue 2;
+                    }
+
+                    [$domain, $context, $original, $plural] = $args;
+                    break;
+
+                case 'dngettext':
+                    if (!isset($args[2])) {
+                        continue 2;
+                    }
+
+                    [$domain, $original, $plural] = $args;
                     break;
 
                 default:
-                    if (isset($bufferFunctions[0])) {
-                        $bufferFunctions[0]->stopArgument();
+                    throw new Exception(sprintf('Not valid function %s', $functions[ $name ]));
+            }
+
+            if ((string)$original === '') {
+                continue;
+            }
+
+            $isDefaultDomain = $domain === null;
+            $isMatchingDomain = $domain === $translations->getDomain();
+
+            if (!empty($options['domainOnly']) && $isDefaultDomain) {
+                // If we want to find translations for a specific domain, skip default domain messages
+                continue;
+            }
+
+            if (!$isDefaultDomain && !$isMatchingDomain) {
+                continue;
+            }
+            $translation = $translations->insert($context, $original, $plural);
+            $translation->addReference($file, $line);
+
+            foreach ($options['function_flag_to_flags'][ $name ] ?? [] as $flag) {
+                $translation->addFlag($flag);
+            }
+            if (isset($function[3])) {
+                foreach ($function[3] as $extractedComment) {
+                    if (\strpos($extractedComment, 'flag:') === 0) {
+                        $translation->addFlag(substr($extractedComment, 5));
                     }
-                    break;
+                    else {
+                        $translation->addExtractedComment($extractedComment);
+                    }
+                }
             }
         }
-        if ($debug) {
-            var_dump($functions);
-        }
-        return $functions;
-    }
-
-    /**
-     * Extract the actual text from a PHP comment.
-     *
-     * If set, only returns comments that match the prefix(es).
-     *
-     * @param string $value The PHP comment.
-     * @param int $line Line number.
-     *
-     * @return null|ParsedComment Comment or null if comment extraction is disabled or if there is a prefix mismatch.
-     */
-    protected function parsePhpComment($value, $line)
-    {
-        if ($this->extractComments === false) {
-            return null;
-        }
-
-        //this returns a comment or null
-        $comment = ParsedComment::create($value, $line);
-
-        $prefixes = array_filter((array)$this->extractComments);
-
-        if ($comment && $comment->checkPrefixes($prefixes)) {
-            return $comment;
-        }
-
-        return null;
     }
 }
