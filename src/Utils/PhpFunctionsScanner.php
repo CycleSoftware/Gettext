@@ -75,6 +75,7 @@ class PhpFunctionsScanner extends FunctionsScanner
         $bufferComments = [];
         /* @var array $functions */
         $functions = [];
+        $in_here_doc = false;
         for ($k = 0; $k < $count; ++$k) {
 
             $value = $this->tokens[ $k ];
@@ -99,6 +100,25 @@ class PhpFunctionsScanner extends FunctionsScanner
             }
 
             switch ($value[0]) {
+
+                case T_START_HEREDOC:
+                    $in_here_doc = true;
+                    $debug = true;
+                    break;
+
+                case T_END_HEREDOC:
+                    $debug = false;
+                    $in_here_doc = false;
+                    break;
+
+                case T_ENCAPSED_AND_WHITESPACE:
+                    if ($in_here_doc) {
+                        if (isset($bufferFunctions[0])) {
+                            $bufferFunctions[0]->addArgumentChunk(\trim($value[1]));
+                            $bufferFunctions[0]->stopArgument();
+                        }
+                    }
+                    break;
                 case T_CONSTANT_ENCAPSED_STRING:
                     //add an argument to the current function
                     if (isset($bufferFunctions[0])) {
@@ -172,7 +192,9 @@ class PhpFunctionsScanner extends FunctionsScanner
                     break;
             }
         }
-
+        if ($debug) {
+            var_dump($functions);
+        }
         return $functions;
     }
 
