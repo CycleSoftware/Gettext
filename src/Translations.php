@@ -210,7 +210,8 @@ class Translations extends ArrayObject
      * @throws InvalidArgumentException If the value is not an instance of Gettext\Translation
      *
      */
-    public function offsetSet(mixed $index, mixed $value): void
+    #[\ReturnTypeWillChange()]
+    public function offsetSet(mixed $index, mixed $value)
     {
         if (!($value instanceof Translation)) {
             throw new InvalidArgumentException(
