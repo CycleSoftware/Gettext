@@ -24,8 +24,7 @@ class VueJs extends JsCode implements ExtractorInterface
             // HTML attribute prefixes we parse as JS which could contain translations (are JS expressions)
             'attributePrefixes' => [
                 ':',
-                'v-bind:',
-                'v-on:',
+                'v-',
             ],
             // HTML Tags to parse
             'tagNames' => [
