@@ -151,8 +151,9 @@ class PhpFunctionsScanner extends FunctionsScanner
                         }
 
                         if ($nextToken === '(') {
-                            $newFunction = new ParsedFunction(\ltrim($value[1], '\\'), $value[2]);
-                            if ($value[1] === '__c') {
+                            $fname = \ltrim($value[1], '\\');
+                            $newFunction = new ParsedFunction($fname, $value[2]);
+                            if ($fname === '__c') {
                                 $newFunction->addComment('Consumer text');
                                 $newFunction->addComment('flag:priority:200');
                             }
