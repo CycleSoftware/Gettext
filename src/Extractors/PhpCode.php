@@ -121,7 +121,7 @@ class PhpCode extends Extractor implements ExtractorInterface
                     case '\\':
                         return '\\';
                     case 'x':
-                        if (str_starts_with($match[0], '\x')) {
+                        if (stripos($match[0], '\x') === 0) {
                             $dec = hexdec(substr($match[0], 2));
                             return mb_chr($dec);
                         }
