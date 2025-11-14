@@ -121,11 +121,15 @@ class PhpCode extends Extractor implements ExtractorInterface
                     case '\\':
                         return '\\';
                     case 'x':
-                        return chr(hexdec(substr($match[0], 1)));
+                        if (str_starts_with($match[0], '\x')) {
+                            $dec = hexdec(substr($match[0], 2));
+                            return mb_chr($dec);
+                        }
+                        return mb_chr(hexdec(substr($match[0], 1)));
                     case 'u':
                         return self::unicodeChar(hexdec(substr($match[0], 1)));
                     default:
-                        return chr(octdec($match[0]));
+                        return mb_chr(octdec($match[0]));
                 }
             },
             $value
