@@ -235,17 +235,13 @@ class VueJs extends JsCode implements ExtractorInterface
         if (empty($expressionsByLine)) {
             return '';
         }
-
-        $maxLines = max(array_keys($expressionsByLine));
         $fakeJs = '';
-
-        for ($line = 1; $line <= $maxLines; $line++) {
-            if (isset($expressionsByLine[$line])) {
-                $fakeJs .= implode("; ", $expressionsByLine[$line]);
+        foreach ($expressionsByLine as $line => $elements) {
+            if (empty($elements)) {
+                continue;
             }
-            $fakeJs .= "\n";
+            $fakeJs .= implode("; ", $elements);
         }
-
         return $fakeJs;
     }
 
